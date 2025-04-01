@@ -19,7 +19,7 @@ Work Hours Logger is a simple and efficient timer application designed to track 
 5. View your work log in `logs/` directory.
 
 ## Log File Format
-The app creates a weekly log file (e.g., `work_hours_01-04-2024.txt`) and records sessions in the following format:
+The app creates a weekly log file (e.g., `work_hours_01-04-2025.txt`) and records sessions in the following format:
 ```
 Work Hours Log - Week Starting: 31-03-2025
 ---------------------------------------------------
