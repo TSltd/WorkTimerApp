@@ -1,5 +1,7 @@
 # WorkTimerApp
 
+ ![gui_image](/gui.jpg)
+
 Work Hours Logger is a simple and efficient timer application designed to track and log your work hours. It allows you to start and stop timers, automatically logging your sessions into a weekly text-based log file. The app prevents duplicate entries and ensures accurate time tracking.
 
 ## Features
