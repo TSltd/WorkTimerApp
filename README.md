@@ -23,13 +23,13 @@ The app creates a weekly log file (e.g., `work_hours_31-03-2025.txt`) and record
 ```
 Work Hours Log - Week Starting: 31-03-2025
 ---------------------------------------------------
-01/04/2024
+01/04/2025
 - 09:00 - 12:00 (Project: Client A) (3h 0m)
 - 13:00 - 15:30 (Project: Client B) (2h 30m)
 
 Total today: 5h 30m
 
-02/04/2024
+02/04/2025
 - 09:00 - 11:00 (Project: Client C) (2h 0m)
 - 12:00 - 15:30 (Project: Internal) (3h 30m)
 
