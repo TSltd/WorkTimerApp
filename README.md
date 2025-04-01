@@ -21,15 +21,21 @@ Work Hours Logger is a simple and efficient timer application designed to track 
 ## Log File Format
 The app creates a weekly log file (e.g., `work_hours_01-04-2024.txt`) and records sessions in the following format:
 ```
-Work Hours Log - Week Starting: 01-04-2024
+Work Hours Log - Week Starting: 31-03-2024
 ---------------------------------------------------
 01/04/2024
 - 09:00 - 12:00 (Project: Client A) (3h 0m)
-- 13:00 - 15:30 (Project: Internal) (2h 30m)
+- 13:00 - 15:30 (Project: Client B) (2h 30m)
 
 Total today: 5h 30m
 
-Total hours this week: 5h 30m
+02/04/2024
+- 09:00 - 11:00 (Project: Client C) (2h 0m)
+- 12:00 - 15:30 (Project: Internal) (3h 30m)
+
+Total today: 5h 30m
+
+Total hours this week: 11h 00m
 ```
 
 
