@@ -509,86 +509,7 @@ try:
                 # Initialize the total time for the day
                 total_today = datetime.timedelta(0)
 
-                # APPROACH 1: Find all sessions by directly looking for lines that start with "-"
-                # and checking if they're between the current date and the next date/summary
-                print("\nAPPROACH 1: Finding sessions by section")
-
-                # Find all sessions for today
-                today_sessions = []
-                in_today_section = False
-                date_line_index = -1
-
-                # First, find the line with today's date
-                for i, line in enumerate(lines):
-                    line = line.strip()
-                    if line == current_date:
-                        date_line_index = i
-                        print(f"Found exact date match at line {i}: '{line}'")
-                        break
-                    elif current_date in line and not line.startswith("-"):
-                        date_line_index = i
-                        print(f"Found partial date match at line {i}: '{line}'")
-                        break
-
-                # If we found the date, collect all session entries until the next date or summary
-                if date_line_index >= 0:
-                    print(f"Starting to collect sessions after line {date_line_index}")
-                    for i in range(date_line_index + 1, len(lines)):
-                        line = lines[i].strip()
-
-                        # Skip empty lines
-                        if not line:
-                            continue
-
-                        # If we hit another date or summary, stop collecting
-                        if (
-                            re.match(r"\d{2}/\d{2}/\d{4}", line)
-                            or line.startswith("Total today:")
-                            or line.startswith("Total hours this week:")
-                        ):
-                            print(f"Stopping at line {i}: '{line}'")
-                            break
-
-                        # If this is a session entry, add it
-                        if line.startswith("-"):
-                            today_sessions.append(line)
-                            print(f"Added session from line {i}: '{line}'")
-
-                # APPROACH 2: Just find all sessions in the file that match today's date pattern
-                # This is a backup approach in case the section-based approach misses something
-                print("\nAPPROACH 2: Finding all sessions in the file")
-                all_sessions = []
-                for i, line in enumerate(lines):
-                    line = line.strip()
-                    if line.startswith("-"):
-                        all_sessions.append((i, line))
-                        print(f"Found session at line {i}: '{line}'")
-
-                # Calculate total from all of today's sessions
-                print(f"\nProcessing {len(today_sessions)} sessions for today")
-                for session in today_sessions:
-                    time_info = self.extract_session_time(session)
-                    if time_info:
-                        total_today += time_info
-                        print(
-                            f"Added session time: {self.format_time(time_info)}, running total: {self.format_time(total_today)}"
-                        )
-                    else:
-                        print(
-                            f"WARNING: Could not extract time from session: '{session}'"
-                        )
-
-                print(
-                    f"Final daily total from section approach: {self.format_time(total_today)}"
-                )
-
-                # APPROACH 3: Use the weekly total calculation method but filter for today's sessions
-                # This is the most reliable approach since it uses the same method as the weekly total
-                print(
-                    "\nAPPROACH 3: Using weekly total method but filtering for today's sessions"
-                )
-
-                # First, find the date line index again to make sure we have it
+                # Find the date line index
                 date_line_index = -1
                 for i, line in enumerate(lines):
                     line = line.strip()
@@ -610,54 +531,63 @@ try:
                             next_date_index = i
                             print(f"Found next date at line {i}: '{line}'")
                             break
+                        elif line.startswith("Total hours this week:"):
+                            next_date_index = i
+                            print(f"Found weekly total at line {i}: '{line}'")
+                            break
 
-                # Now calculate the total using the weekly total method but only for lines between
-                # the date line and the next date (or end of file)
-                approach3_total = datetime.timedelta(0)
+                # Calculate the total using only lines between the date line and the next date
                 for i in range(date_line_index + 1, next_date_index):
                     line = lines[i].strip()
                     if line.startswith("-"):  # Session entry
                         session_time = self.extract_session_time(line)
                         if session_time:
-                            approach3_total += session_time
+                            total_today += session_time
                             print(
-                                f"Line {i}: Added {self.format_time(session_time)} to approach3 total"
+                                f"Line {i}: Added {self.format_time(session_time)} to daily total"
                             )
 
-                print(
-                    f"Final daily total from approach 3: {self.format_time(approach3_total)}"
-                )
-
-                # Use the approach3 total as our final total since it's the most reliable
-                total_today = approach3_total
-
-                # Double-check with the weekly total calculation method
-                print("\nDouble-checking with weekly total method:")
-                weekly_total = datetime.timedelta(0)
-                for i, line in enumerate(lines):
-                    line = line.strip()
-                    if line.startswith("-"):  # Session entry
-                        session_time = self.extract_session_time(line)
-                        if session_time:
-                            weekly_total += session_time
-                            print(
-                                f"Line {i}: Added {self.format_time(session_time)} to weekly total"
-                            )
-
-                print(f"Weekly total calculation: {self.format_time(weekly_total)}")
+                print(f"Final daily total: {self.format_time(total_today)}")
 
                 # If today's date wasn't found in the log, add it
                 if date_line_index < 0:
                     self.write_day_log(log_file, current_date)
+                    date_line_index = len(lines) - 1  # Assume it was added at the end
+                    next_date_index = len(lines)
 
-                # Remove any previous total for today if it exists
+                # Rebuild the file with the daily total in the correct place
                 new_lines = []
-                for line in lines:
-                    if "Total today:" not in line:
-                        new_lines.append(line)
 
-                # Add the total today at the end of the log file
-                new_lines.append(f"\nTotal today: {self.format_time(total_today)}\n")
+                # Add everything up to the current date section
+                new_lines.extend(lines[: date_line_index + 1])
+
+                # Add all session entries for the current date
+                session_lines = []
+                for i in range(date_line_index + 1, next_date_index):
+                    line = lines[i].strip()
+                    if line.startswith("-") or not line:  # Session entry or blank line
+                        session_lines.append(lines[i])
+
+                new_lines.extend(session_lines)
+
+                # Add the daily total after the session entries
+                if session_lines:
+                    if not session_lines[-1].strip():  # If last line is blank
+                        new_lines.append(
+                            f"Total today: {self.format_time(total_today)}\n\n"
+                        )
+                    else:
+                        new_lines.append(
+                            f"\nTotal today: {self.format_time(total_today)}\n\n"
+                        )
+                else:
+                    new_lines.append(
+                        f"\nTotal today: {self.format_time(total_today)}\n\n"
+                    )
+
+                # Add everything after the current date section
+                if next_date_index < len(lines):
+                    new_lines.extend(lines[next_date_index:])
 
                 # Write the updated lines back into the log file
                 with open(log_file, "w") as f:
@@ -846,13 +776,46 @@ try:
                 print(f"Error loading logs: {e}")
 
         def write_day_log(self, log_file, today_date):
-            # Check if today's date already exists in the file, if not add it
-            print(f"write_day_log called for {today_date}")  # Add this print statement
+            """Adds a new day entry to the log file if it doesn't already exist."""
+            print(f"write_day_log called for {today_date}")
 
-            with open(log_file, "r") as f:
-                lines = f.readlines()
+            try:
+                # Read the current log file
+                with open(log_file, "r") as f:
+                    lines = f.readlines()
 
-            if f"{today_date}\n" not in lines:
+                # Check if today's date already exists in the file
+                date_exists = False
+                for line in lines:
+                    if line.strip() == today_date:
+                        date_exists = True
+                        break
+
+                # If today's date doesn't exist, add it
+                if not date_exists:
+                    # Find the position to insert the new date
+                    # It should be after any existing dates and their entries,
+                    # but before the weekly total
+                    insert_position = len(lines)
+                    for i in range(len(lines) - 1, -1, -1):
+                        if "Total hours this week:" in lines[i]:
+                            insert_position = i
+                            break
+
+                    # Insert the new date at the appropriate position
+                    lines.insert(insert_position, f"\n{today_date}\n")
+
+                    # Write the updated lines back to the file
+                    with open(log_file, "w") as f:
+                        f.writelines(lines)
+
+                    print(f"Added new date entry for {today_date}")
+                else:
+                    print(f"Date {today_date} already exists in the log file")
+
+            except Exception as e:
+                print(f"Error in write_day_log: {e}")
+                # If there's an error, try the simple append method as a fallback
                 with open(log_file, "a") as f:
                     f.write(f"\n{today_date}\n")
 
