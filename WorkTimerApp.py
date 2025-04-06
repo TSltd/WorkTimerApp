@@ -405,6 +405,10 @@ try:
                 if now.hour == 23 and now.minute == 59 and now.second == 59:
                     print("🔔 Split session at 23:59:59!")
 
+                    # Get the current log file before midnight
+                    current_log_file = self.get_current_week_log_filename()
+                    current_date = now.strftime("%d/%m/%Y")
+
                     # Stop the current session at 23:59:59
                     end_of_day = datetime.datetime.combine(
                         now.date(), datetime.time(23, 59, 59)
@@ -413,9 +417,24 @@ try:
                         end_time=end_of_day.timestamp()
                     )  # Log the old session
 
+                    # Update daily and weekly totals for the current day
+                    self.update_daily_total(
+                        current_log_file, current_date, datetime.timedelta(0)
+                    )
+                    self.update_weekly_total(current_log_file)
+
+                    # Check if we're transitioning from Sunday to Monday (new week)
+                    tomorrow = now.date() + datetime.timedelta(days=1)
+                    if tomorrow.weekday() == 0:  # Monday is 0
+                        print("🔔 New week starting! Creating new log file.")
+                        # The current log file already has the correct totals from stop_timer and our updates above
+
+                        # The new log file will be created when we start the timer below
+                        # or when get_current_week_log_filename is called with the new date
+
                     # Start a new session at 00:00:00 (midnight of the new day)
                     midnight = datetime.datetime.combine(
-                        now.date() + datetime.timedelta(days=1), datetime.time(0, 0, 0)
+                        tomorrow, datetime.time(0, 0, 0)
                     )
                     self.start_timer(
                         start_time=midnight.timestamp()
