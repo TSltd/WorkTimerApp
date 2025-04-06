@@ -104,7 +104,9 @@ try:
 
             self.sessions_today = set()
 
-            self.session_logged = False
+            self.session_logged = (
+                False  # Flag to track if the current session has been logged
+            )
 
             self.create_widgets()
             self.create_tray_icon()
@@ -238,6 +240,9 @@ try:
             if not self.timer_running or not self.start_time:
                 return
 
+            # Set the flag to indicate this session has been logged
+            self.session_logged = True
+
             current_time = time.time()
             start_time_dt = datetime.datetime.fromtimestamp(self.start_time).replace(
                 second=0, microsecond=0
@@ -350,10 +355,14 @@ try:
             end_time_dt = end_time_dt.replace(second=0, microsecond=0)
             end_time = end_time_dt.timestamp()  # Convert back to timestamp
 
-            # Calculate session duration and log it
-            # Only log the session once when the timer stops
+            # Calculate session duration
             duration = self.calculate_duration(self.start_time, end_time)
-            self.log_time(duration, end_time)
+
+            # Only log the session if it hasn't been logged by update_log_file
+            if not self.session_logged:
+                self.log_time(duration, end_time)
+            else:
+                print("Session already logged by update_log_file, skipping log_time")
 
             # Reset the button and elapsed time display
             self.start_stop_button.config(text="Start")
@@ -377,6 +386,9 @@ try:
         def start_timer(self, start_time=None):
             self.timer_running = True
             self.start_time = start_time if start_time else time.time()
+            self.session_logged = (
+                False  # Reset the session_logged flag when starting a new timer
+            )
 
             log_file = self.get_current_week_log_filename()
             print(f"Timer started. Log file: {log_file}")
