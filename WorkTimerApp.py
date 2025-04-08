@@ -436,12 +436,21 @@ try:
                     midnight = datetime.datetime.combine(
                         tomorrow, datetime.time(0, 0, 0)
                     )
+                    
+                    # Create a new log entry for the new day before starting the timer
+                    tomorrow_date = tomorrow.strftime("%d/%m/%Y")
+                    new_log_file = self.get_current_week_log_filename()  # This might be a new file if it's a new week
+                    self.write_day_log(new_log_file, tomorrow_date)
+                    
+                    # Start the new timer
                     self.start_timer(
                         start_time=midnight.timestamp()
                     )  # Log the new session
 
                     # Reset daily total for the new day
                     self.daily_totals = {midnight.date(): datetime.timedelta(0)}
+                    
+                    print(f"🔔 Started new session at midnight for {tomorrow_date}")
 
                 # Update elapsed time
                 elapsed = time.time() - self.start_time
@@ -663,9 +672,22 @@ try:
 
                         # Handle cases where the session crosses midnight
                         if end_minutes < start_minutes:
-                            end_minutes += 24 * 60  # Add a day's worth of minutes
-
+                            # For sessions that cross midnight, we need to be careful
+                            # If the start time is close to midnight (after 23:00)
+                            # and end time is close to 00:00, it's likely crossing midnight
+                            if start_hour >= 23 and end_hour < 1:
+                                end_minutes += 24 * 60  # Add a day's worth of minutes
+                            # Otherwise, it might be a different kind of session (like spanning a whole day)
+                            # In this case, calculate the duration normally
+                        
                         duration_minutes = end_minutes - start_minutes
+                        
+                        # Ensure we never have negative durations
+                        if duration_minutes < 0:
+                            print(f"Warning: Negative duration detected: {duration_minutes} minutes")
+                            print(f"  Start: {start_hour}:{start_minute}, End: {end_hour}:{end_minute}")
+                            # In case of negative duration, assume it's a short session
+                            duration_minutes = abs(duration_minutes)
                         duration = datetime.timedelta(minutes=duration_minutes)
 
                         print(
